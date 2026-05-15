@@ -1,0 +1,54 @@
+{
+  "created_at_utc": "2026-05-14T23:37:47+00:00",
+  "dataset_source": "huggingface:HuggingFaceTB/cosmopedia_stanford_openstax_wiki_1k",
+  "source_language": "en",
+  "target_language": "id",
+  "sampling": {
+    "sample_size": 300,
+    "min_words": 100,
+    "seed": 42,
+    "eligible_rows": 2982,
+    "bucket_counts": {
+      "long": 100,
+      "medium": 100,
+      "short": 100
+    },
+    "strategy": "equal allocation over source word-count terciles"
+  },
+  "generation": {
+    "provider": "sealion_api",
+    "model": "aisingapore/Qwen-SEA-LION-v4-32B-IT",
+    "max_retries": 2,
+    "max_replacements": 5,
+    "chunking": "disabled",
+    "requests_per_minute": 10,
+    "concurrency": 3
+  },
+  "qa": {
+    "sanity_checks": "enabled",
+    "length_ratio_min": 0.4,
+    "length_ratio_max": 2.2,
+    "copy_rate_max": 0.65,
+    "cometkiwi_enabled": true,
+    "judge": {
+      "enabled": true,
+      "provider": "qwen3vl_local",
+      "model": "Qwen/Qwen3-VL-32B-Instruct",
+      "mode": "all"
+    }
+  },
+  "outputs": {
+    "dataset": "data/translation_eval_ind.jsonl",
+    "qa": "data/translation_eval_ind_qa.jsonl",
+    "cometkiwi": "data/translation_eval_ind_cometkiwi.jsonl",
+    "judge": "data/translation_eval_ind_judge_qwen3vl.jsonl",
+    "manifest": "data/translation_eval_ind_manifest.json"
+  },
+  "stages": {
+    "generate": {
+      "started_at_utc": "2026-05-14T23:37:47+00:00",
+      "completed_at_utc": "2026-05-15T00:29:53+00:00",
+      "records": 300
+    }
+  }
+}
