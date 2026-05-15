@@ -1,0 +1,52 @@
+{
+  "paths": {
+    "output": "data/translation_eval_ind.jsonl",
+    "qa_output": "data/translation_eval_ind_qa.jsonl",
+    "cometkiwi_output": "data/translation_eval_ind_cometkiwi.jsonl",
+    "judge_output": "data/translation_eval_ind_judge_qwen3vl.jsonl",
+    "manifest_output": "data/translation_eval_ind_manifest.json"
+  },
+  "sampling": {
+    "dataset_name": "HuggingFaceTB/cosmopedia_stanford_openstax_wiki_1k",
+    "sample_size": 300,
+    "min_words": 100,
+    "seed": 42
+  },
+  "generation": {
+    "generator_provider": "sealion_api",
+    "generator_model": "aisingapore/Qwen-SEA-LION-v4-32B-IT",
+    "max_retries": 2,
+    "max_replacements": 5,
+    "max_generation_tokens": 4096
+  },
+  "api": {
+    "api_base_url": "https://api.sea-lion.ai/v1",
+    "api_key_env": "SEA_LION_API_KEY",
+    "requests_per_minute": 10,
+    "api_concurrency": 3,
+    "timeout_seconds": 120
+  },
+  "qa": {
+    "length_ratio_min": 0.4,
+    "length_ratio_max": 2.2,
+    "copy_rate_max": 0.65,
+    "enable_cometkiwi": true,
+    "cometkiwi_model": "Unbabel/wmt22-cometkiwi-da",
+    "cometkiwi_batch_size": 8,
+    "cometkiwi_gpus": null
+  },
+  "judge": {
+    "enable_judge": true,
+    "judge_provider": "qwen3vl_local",
+    "judge_mode": "all",
+    "judge_min_overall": 4.0,
+    "judge_min_accuracy": 4.0
+  },
+  "qwen3vl": {
+    "qwen3vl_model": "Qwen/Qwen3-VL-32B-Instruct",
+    "qwen3vl_dtype": "bfloat16",
+    "qwen3vl_device_map": "auto",
+    "qwen3vl_attn_implementation": null,
+    "qwen3vl_max_new_tokens": 1024
+  }
+}

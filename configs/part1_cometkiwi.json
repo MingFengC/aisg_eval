@@ -1,0 +1,15 @@
+{
+  "paths": {
+    "output": "data/translation_eval_ind.jsonl",
+    "qa_output": "data/translation_eval_ind_qa.jsonl",
+    "cometkiwi_output": "data/translation_eval_ind_cometkiwi.jsonl",
+    "judge_output": "data/translation_eval_ind_judge_qwen3vl.jsonl",
+    "manifest_output": "data/translation_eval_ind_manifest.json"
+  },
+  "qa": {
+    "enable_cometkiwi": true,
+    "cometkiwi_model": "Unbabel/wmt22-cometkiwi-da",
+    "cometkiwi_batch_size": 8,
+    "cometkiwi_gpus": null
+  }
+}

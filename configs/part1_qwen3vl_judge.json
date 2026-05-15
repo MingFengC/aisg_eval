@@ -1,0 +1,23 @@
+{
+  "paths": {
+    "output": "data/translation_eval_ind.jsonl",
+    "qa_output": "data/translation_eval_ind_qa.jsonl",
+    "cometkiwi_output": "data/translation_eval_ind_cometkiwi.jsonl",
+    "judge_output": "data/translation_eval_ind_judge_qwen3vl.jsonl",
+    "manifest_output": "data/translation_eval_ind_manifest.json"
+  },
+  "judge": {
+    "enable_judge": true,
+    "judge_provider": "qwen3vl_local",
+    "judge_mode": "all",
+    "judge_min_overall": 4.0,
+    "judge_min_accuracy": 4.0
+  },
+  "qwen3vl": {
+    "qwen3vl_model": "Qwen/Qwen3-VL-32B-Instruct",
+    "qwen3vl_dtype": "bfloat16",
+    "qwen3vl_device_map": "auto",
+    "qwen3vl_attn_implementation": null,
+    "qwen3vl_max_new_tokens": 1024
+  }
+}
