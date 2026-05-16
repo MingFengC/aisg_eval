@@ -135,6 +135,13 @@ dependencies = [
 cometkiwi = [
     { name = "unbabel-comet" },
 ]
+part2 = [
+    { name = "accelerate" },
+    { name = "sacrebleu" },
+    { name = "sentencepiece" },
+    { name = "torch" },
+    { name = "transformers" },
+]
 qwen3vl = [
     { name = "accelerate" },
     { name = "bitsandbytes" },
@@ -150,6 +157,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "accelerate", marker = "extra == 'part2'", specifier = ">=1.12.0" },
     { name = "accelerate", marker = "extra == 'qwen3vl'", specifier = ">=1.12.0" },
     { name = "bitsandbytes", marker = "extra == 'qwen3vl'", specifier = ">=0.48.2" },
     { name = "datasets", specifier = ">=4.8.5" },
@@ -160,12 +168,16 @@ requires-dist = [
     { name = "pandas", specifier = ">=3.0.2" },
     { name = "pyarrow", specifier = ">=24.0.0" },
     { name = "qwen-vl-utils", marker = "extra == 'qwen3vl'", specifier = ">=0.0.14" },
+    { name = "sacrebleu", marker = "extra == 'part2'", specifier = ">=2.6.0" },
     { name = "seaborn", specifier = ">=0.13.2" },
+    { name = "sentencepiece", marker = "extra == 'part2'", specifier = ">=0.2.1" },
+    { name = "torch", marker = "extra == 'part2'", specifier = ">=2.12.0" },
+    { name = "transformers", marker = "extra == 'part2'", specifier = ">=4.57.3" },
     { name = "transformers", marker = "extra == 'qwen3vl'", specifier = ">=4.57.3" },
     { name = "unbabel-comet", marker = "extra == 'cometkiwi'", specifier = ">=2.2.7" },
     { name = "wordcloud", specifier = ">=1.9.6" },
 ]
-provides-extras = ["cometkiwi", "qwen3vl"]
+provides-extras = ["cometkiwi", "qwen3vl", "part2"]
 
 [package.metadata.requires-dev]
 dev = [

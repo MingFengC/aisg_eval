@@ -26,6 +26,13 @@ qwen3vl = [
     "qwen-vl-utils>=0.0.14",
     "transformers>=4.57.3",
 ]
+part2 = [
+    "accelerate>=1.12.0",
+    "sacrebleu>=2.6.0",
+    "sentencepiece>=0.2.1",
+    "torch>=2.12.0",
+    "transformers>=4.57.3",
+]
 
 [dependency-groups]
 dev = [
@@ -39,6 +46,9 @@ root = ["."]
 
 [tool.ty.analysis]
 allowed-unresolved-imports = [
+    "metricx24",
+    "sacrebleu",
+    "sacrebleu.**",
     "qwen_vl_utils",
     "torch",
     "transformers",
