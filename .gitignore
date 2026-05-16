@@ -1,2 +1,8 @@
 .env
 cosmopedia_stanford_openstax_wiki_1k/
+__pycache__/
+.venv/
+data2/
+data3/
+data4/
+*.zip

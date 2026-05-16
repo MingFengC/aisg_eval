@@ -17,11 +17,12 @@ DEFAULT_OUTPUT = Path("data/translation_eval_ind.jsonl")
 DEFAULT_QA_OUTPUT = Path("data/translation_eval_ind_qa.jsonl")
 DEFAULT_MANIFEST_OUTPUT = Path("data/translation_eval_ind_manifest.json")
 DEFAULT_COMETKIWI_OUTPUT = Path("data/translation_eval_ind_cometkiwi.jsonl")
-DEFAULT_JUDGE_OUTPUT = Path("data/translation_eval_ind_judge_qwen3vl.jsonl")
+DEFAULT_JUDGE_OUTPUT = Path("data/translation_eval_ind_judge_sealion_qwen.jsonl")
 
-DEFAULT_GENERATOR_MODEL = "aisingapore/Qwen-SEA-LION-v4-32B-IT"
+DEFAULT_GENERATOR_MODEL = "aisingapore/Gemma-SEA-LION-v4-27B-IT"
 DEFAULT_JUDGE_MODEL = "aisingapore/Qwen-SEA-LION-v4-32B-IT"
 DEFAULT_QWEN3VL_JUDGE_MODEL = "Qwen/Qwen3-VL-32B-Instruct"
+DEFAULT_QWEN3VL_INT4_JUDGE_MODEL = "unsloth/Qwen3-VL-32B-Instruct-unsloth-bnb-4bit"
 DEFAULT_API_BASE_URL = "https://api.sea-lion.ai/v1"
 
 
@@ -38,12 +39,15 @@ class PipelineConfig:
     seed: int = 42
     generator_provider: str = "sealion_api"
     generator_model: str = DEFAULT_GENERATOR_MODEL
-    judge_provider: str = "qwen3vl_local"
+    judge_provider: str = "sealion_api"
     judge_model: str = DEFAULT_JUDGE_MODEL
     qwen3vl_model: str = DEFAULT_QWEN3VL_JUDGE_MODEL
     qwen3vl_dtype: str = "bfloat16"
     qwen3vl_device_map: str = "auto"
     qwen3vl_attn_implementation: str | None = None
+    qwen3vl_load_in_4bit: bool = False
+    qwen3vl_bnb_4bit_quant_type: str = "nf4"
+    qwen3vl_bnb_4bit_use_double_quant: bool = True
     qwen3vl_max_new_tokens: int = 1024
     api_base_url: str = DEFAULT_API_BASE_URL
     api_key_env: str = "SEA_LION_API_KEY"

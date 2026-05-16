@@ -17,7 +17,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--config",
         type=Path,
-        default=Path("configs/part1_sealion_qwen_generator.json"),
+        default=Path("configs/part1_practical_api_flow.json"),
         help="Path to a JSON config file.",
     )
     parser.add_argument(

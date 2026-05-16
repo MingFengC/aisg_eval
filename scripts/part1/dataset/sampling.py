@@ -1,7 +1,13 @@
 """Dataset loading and length-stratified sampling."""
 
 from __future__ import annotations
-from ..utils.text import normalize_source_text, stable_source_id, word_count
+from ..utils.text import (
+    has_llm_artifact_text,
+    looks_incomplete_text,
+    normalize_source_text,
+    stable_source_id,
+    word_count,
+)
 from datasets import load_dataset
 import pandas as pd
 
@@ -42,6 +48,22 @@ class SourceSampler:
         pool["source_word_count"] = pool["source"].map(word_count)
         pool["source_char_count"] = pool["source"].str.len()
         pool = pool.loc[pool["source_word_count"] >= self.min_words].copy()
+        before_completeness_filter = len(pool)
+        pool = pool.loc[~pool["source"].map(looks_incomplete_text)].copy()
+        excluded = before_completeness_filter - len(pool)
+        if excluded:
+            LOGGER.info(
+                "Excluded %s source rows that appear incomplete or truncated",
+                excluded,
+            )
+        before_artifact_filter = len(pool)
+        pool = pool.loc[~pool["source"].map(has_llm_artifact_text)].copy()
+        artifact_excluded = before_artifact_filter - len(pool)
+        if artifact_excluded:
+            LOGGER.info(
+                "Excluded %s source rows with explicit LLM/assistant artifacts",
+                artifact_excluded,
+            )
         if len(pool) < 3:
             raise ValueError("Not enough eligible rows after filtering")
 

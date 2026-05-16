@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from typing import Any, AsyncIterator
 
@@ -12,6 +13,36 @@ from ..config.data_object import PipelineConfig
 
 
 LOGGER = logging.getLogger("prepare_translation_dataset")
+
+
+def quiet_model_loading_logs() -> None:
+    """Reduce third-party model-loading noise while keeping pipeline logs visible."""
+
+    os.environ.setdefault("BITSANDBYTES_NOWELCOME", "1")
+    os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+    os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+    os.environ.setdefault("TRANSFORMERS_VERBOSITY", "error")
+    for logger_name in (
+        "accelerate",
+        "bitsandbytes",
+        "huggingface_hub",
+        "transformers",
+        "transformers.modeling_utils",
+    ):
+        logging.getLogger(logger_name).setLevel(logging.ERROR)
+    try:
+        from huggingface_hub.utils import disable_progress_bars
+
+        disable_progress_bars()
+    except Exception:
+        pass
+    try:
+        from transformers.utils import logging as transformers_logging
+
+        transformers_logging.set_verbosity_error()
+        transformers_logging.disable_progress_bar()
+    except Exception:
+        pass
 
 
 class Qwen3VLChatClient:
@@ -26,6 +57,9 @@ class Qwen3VLChatClient:
         self.dtype_name = config.qwen3vl_dtype
         self.device_map = config.qwen3vl_device_map
         self.attn_implementation = config.qwen3vl_attn_implementation
+        self.load_in_4bit = config.qwen3vl_load_in_4bit
+        self.bnb_4bit_quant_type = config.qwen3vl_bnb_4bit_quant_type
+        self.bnb_4bit_use_double_quant = config.qwen3vl_bnb_4bit_use_double_quant
         self.max_new_tokens = config.qwen3vl_max_new_tokens
         self.processor: Any | None = None
         self.model: Any | None = None
@@ -41,14 +75,33 @@ class Qwen3VLChatClient:
     def _torch_dtype(self) -> Any:
         assert self.torch is not None
         if self.dtype_name == "auto":
-            return "auto"
+            return "auto" if not self.load_in_4bit else self.torch.float16
         if not hasattr(self.torch, self.dtype_name):
             raise ValueError(f"Unsupported torch dtype: {self.dtype_name}")
         return getattr(self.torch, self.dtype_name)
 
+    def _quantization_config(self) -> Any | None:
+        if not self.load_in_4bit:
+            return None
+        assert self.torch is not None
+        try:
+            from transformers import BitsAndBytesConfig
+        except Exception as exc:
+            raise RuntimeError(
+                "qwen3vl_load_in_4bit=true requires transformers with bitsandbytes support. "
+                "Install bitsandbytes and a recent transformers version."
+            ) from exc
+        return BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type=self.bnb_4bit_quant_type,
+            bnb_4bit_compute_dtype=self._torch_dtype(),
+            bnb_4bit_use_double_quant=self.bnb_4bit_use_double_quant,
+        )
+
     def _load(self) -> None:
         if self.model is not None and self.processor is not None:
             return
+        quiet_model_loading_logs()
         import torch
         from transformers import AutoModelForImageTextToText, AutoProcessor
 
@@ -57,10 +110,19 @@ class Qwen3VLChatClient:
             "torch_dtype": self._torch_dtype(),
             "device_map": self.device_map,
         }
+        quantization_config = self._quantization_config()
+        if quantization_config is not None:
+            model_kwargs["quantization_config"] = quantization_config
         if self.attn_implementation:
             model_kwargs["attn_implementation"] = self.attn_implementation
 
-        LOGGER.info("Loading local judge model: %s", self.model_id)
+        LOGGER.info(
+            "Loading local judge model: %s (4bit=%s, device_map=%s, dtype=%s)",
+            self.model_id,
+            self.load_in_4bit,
+            self.device_map,
+            self.dtype_name,
+        )
         self.processor = AutoProcessor.from_pretrained(self.model_id)
         self.model = AutoModelForImageTextToText.from_pretrained(
             self.model_id, **model_kwargs)

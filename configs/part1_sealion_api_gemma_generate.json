@@ -3,7 +3,7 @@
     "output": "data/translation_eval_ind.jsonl",
     "qa_output": "data/translation_eval_ind_qa.jsonl",
     "cometkiwi_output": "data/translation_eval_ind_cometkiwi.jsonl",
-    "judge_output": "data/translation_eval_ind_judge_qwen3vl.jsonl",
+    "judge_output": "data/translation_eval_ind_judge_sealion_qwen.jsonl",
     "manifest_output": "data/translation_eval_ind_manifest.json"
   },
   "sampling": {
@@ -14,7 +14,7 @@
   },
   "generation": {
     "generator_provider": "sealion_api",
-    "generator_model": "aisingapore/Qwen-SEA-LION-v4-32B-IT",
+    "generator_model": "aisingapore/Gemma-SEA-LION-v4-27B-IT",
     "max_retries": 2,
     "max_replacements": 5,
     "max_generation_tokens": 4096
@@ -37,19 +37,10 @@
   },
   "judge": {
     "enable_judge": true,
-    "judge_provider": "qwen3vl_local",
+    "judge_provider": "sealion_api",
+    "judge_model": "aisingapore/Qwen-SEA-LION-v4-32B-IT",
     "judge_mode": "all",
     "judge_min_overall": 4.0,
     "judge_min_accuracy": 4.0
-  },
-  "qwen3vl": {
-    "qwen3vl_model": "unsloth/Qwen3-VL-32B-Instruct-unsloth-bnb-4bit",
-    "qwen3vl_dtype": "float16",
-    "qwen3vl_device_map": "auto",
-    "qwen3vl_attn_implementation": null,
-    "qwen3vl_load_in_4bit": true,
-    "qwen3vl_bnb_4bit_quant_type": "nf4",
-    "qwen3vl_bnb_4bit_use_double_quant": true,
-    "qwen3vl_max_new_tokens": 768
   }
 }

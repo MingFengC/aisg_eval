@@ -1,0 +1,24 @@
+{
+  "paths": {
+    "output": "data/translation_eval_ind.jsonl",
+    "qa_output": "data/translation_eval_ind_qa.jsonl",
+    "cometkiwi_output": "data/translation_eval_ind_cometkiwi.jsonl",
+    "judge_output": "data/translation_eval_ind_judge_sealion_qwen.jsonl",
+    "manifest_output": "data/translation_eval_ind_manifest.json"
+  },
+  "api": {
+    "api_base_url": "https://api.sea-lion.ai/v1",
+    "api_key_env": "SEA_LION_API_KEY",
+    "requests_per_minute": 10,
+    "api_concurrency": 3,
+    "timeout_seconds": 120
+  },
+  "judge": {
+    "enable_judge": true,
+    "judge_provider": "sealion_api",
+    "judge_model": "aisingapore/Qwen-SEA-LION-v4-32B-IT",
+    "judge_mode": "all",
+    "judge_min_overall": 4.0,
+    "judge_min_accuracy": 4.0
+  }
+}

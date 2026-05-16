@@ -3,7 +3,7 @@
     "output": "data/translation_eval_ind.jsonl",
     "qa_output": "data/translation_eval_ind_qa.jsonl",
     "cometkiwi_output": "data/translation_eval_ind_cometkiwi.jsonl",
-    "judge_output": "data/translation_eval_ind_judge_qwen3vl.jsonl",
+    "judge_output": "data/translation_eval_ind_judge_sealion_qwen.jsonl",
     "manifest_output": "data/translation_eval_ind_manifest.json"
   },
   "qa": {

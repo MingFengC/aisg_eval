@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections import Counter
 from typing import Any
 
 import pandas as pd
@@ -338,6 +339,32 @@ class JudgeStage:
     def _judge_model_id(config: PipelineConfig) -> str:
         return config.qwen3vl_model if config.judge_provider == "qwen3vl_local" else config.judge_model
 
+    @staticmethod
+    def _score_distribution(results: dict[str, dict[str, Any]]) -> Counter[str]:
+        distribution: Counter[str] = Counter()
+        for result in results.values():
+            score = result.get("judge_score") or {}
+            distribution[str(score.get("overall"))] += 1
+        return distribution
+
+    def _log_score_distribution(self, results: dict[str, dict[str, Any]]) -> None:
+        distribution = self._score_distribution(results)
+        if not distribution:
+            return
+        total = sum(distribution.values())
+        LOGGER.info("Judge overall-score distribution: %s",
+                    dict(sorted(distribution.items())))
+        most_common_score, most_common_count = distribution.most_common(1)[0]
+        if total >= 5 and most_common_count / total >= 0.95:
+            LOGGER.warning(
+                "Judge scores are nearly uniform (%s/%s rows are overall=%s). "
+                "Treat judge results as weak QA evidence and rely more heavily on COMETKiwi, "
+                "deterministic checks, or an independent judge model.",
+                most_common_count,
+                total,
+                most_common_score,
+            )
+
     async def run(self) -> None:
         records = list(load_jsonl_by_id(self.config.output).values())
         if not records:
@@ -377,7 +404,10 @@ class JudgeStage:
             async def run_one(record: dict[str, Any]) -> dict[str, Any]:
                 async with semaphore:
                     try:
-                        result = await judge.judge_record(record)
+                        result = await judge.judge_record(
+                            record,
+                            qa_by_id.get(record["id"]),
+                        )
                         return {
                             "id": record["id"],
                             "judge_provider": self.config.judge_provider,
@@ -415,6 +445,7 @@ class JudgeStage:
                 )
                 LOGGER.info("Judged %s (%s/%s)",
                             result["id"], len(judge_results), len(records))
+        self._log_score_distribution(judge_results)
 
 
 class CometKiwiStage:

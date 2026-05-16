@@ -11,6 +11,67 @@ WORD_RE = re.compile(r"[A-Za-z]+(?:'[A-Za-z]+)?|\d+(?:\.\d+)?")
 SENTENCE_SPLIT_RE = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9\"'(\[])")
 HEADING_RE = re.compile(r"^\s*(?:\*\*)?\s*(\d+(?:\.\d+)*)\b")
 LIST_MARKER_RE = re.compile(r"^\s*(?:[-*]|\d+[.)])\s+")
+TERMINAL_END_CHARS = set(".!?)]}\"'’”>")
+TRAILING_MARKDOWN_RE = re.compile(r"[\s*_`]+$")
+WORD_END_RE = re.compile(r"[A-Za-zÀ-ÖØ-öø-ÿ]+|\d+")
+LLM_ARTIFACT_PATTERNS = [
+    re.compile(pattern, flags=re.I | re.S)
+    for pattern in (
+        r"^\s*(?:sure(?: thing)?|certainly|of course|absolutely)[!.]?\s+"
+        r"(?:here(?:'s| is| are)|i(?:'d| would) be happy|let's|i can)\b",
+        r"^\s*here(?:'s| is| are)\s+(?:a|an|the|sample|draft)\b",
+        r"\bas an ai language model\b",
+        r"\bi (?:am|'m) (?:an? )?(?:ai|language model)\b",
+        r"\bi (?:cannot|can't) (?:browse|access|provide|assist)\b",
+        r"\bi hope (?:this|the) (?:sub[- ]?unit|section|chapter|lesson|module|response|answer)"
+        r".{0,120}\b(?:meets|satisfies|matches).{0,80}\b(?:your )?(?:requirements|needs|request)\b",
+        r"\b(?:please )?let me know if you (?:have|need|would like|want)"
+        r".{0,120}\b(?:feedback|suggestions|questions|changes|revisions?|improvements?)\b",
+        r"\bi hope this helps\b",
+        r"\bi hope you find this (?:helpful|useful)\b",
+    )
+]
+
+DANGLING_FINAL_WORDS = {
+    "a",
+    "an",
+    "and",
+    "as",
+    "at",
+    "based",
+    "because",
+    "between",
+    "by",
+    "come",
+    "dari",
+    "dan",
+    "dengan",
+    "di",
+    "for",
+    "from",
+    "if",
+    "in",
+    "into",
+    "ke",
+    "ketika",
+    "mencari",
+    "of",
+    "on",
+    "or",
+    "ratusan",
+    "searching",
+    "sebagai",
+    "that",
+    "the",
+    "to",
+    "untuk",
+    "when",
+    "where",
+    "which",
+    "while",
+    "with",
+    "yang",
+}
 
 INDONESIAN_MARKERS = {
     "yang",
@@ -144,6 +205,58 @@ def has_repeated_text(reference: str) -> bool:
         if duplicate_sentences / len(normalized) > 0.25:
             return True
     return False
+
+
+def looks_incomplete_text(text: str) -> bool:
+    """Conservative heuristic for source/reference rows that end mid-stream.
+
+    The source dataset contains some rows that stop inside a sentence, citation,
+    code block, markdown heading, or numeric expression. Those rows can produce
+    faithful but unusable translations, so we filter or flag them before using
+    the examples as references.
+    """
+
+    stripped = TRAILING_MARKDOWN_RE.sub("", str(text).strip())
+    if not stripped:
+        return True
+
+    tail = stripped[-160:].strip()
+    final_line = stripped.splitlines()[-1].strip()
+    if final_line in {"#", "##", "###", "####"}:
+        return True
+    if stripped.endswith(("...", "…")):
+        return True
+    if stripped.count("```") % 2 == 1:
+        return True
+    if tail.endswith((",", ";", ":", "-", "–", "—", "/", "\\")):
+        return True
+
+    last_char = stripped[-1]
+    if last_char in TERMINAL_END_CHARS:
+        return False
+    if last_char.isdigit():
+        return True
+
+    tokens = WORD_END_RE.findall(tail)
+    last_token = tokens[-1].lower() if tokens else ""
+    if last_token in DANGLING_FINAL_WORDS:
+        return True
+    if last_char not in TERMINAL_END_CHARS:
+        return True
+    return False
+
+
+def has_llm_artifact_text(text: str) -> bool:
+    """Detect explicit assistant/meta artifacts in otherwise educational text.
+
+    Cosmopedia-style data is synthetic, so this intentionally does not try to
+    classify whether a passage was machine-written. It only catches boilerplate
+    that points outside the educational document itself, such as "let me know if
+    you have feedback" or "I hope this sub-unit meets your requirements".
+    """
+
+    normalized = normalize_source_text(text).lower()
+    return any(pattern.search(normalized) for pattern in LLM_ARTIFACT_PATTERNS)
 
 
 def clean_model_output(text: str) -> str:

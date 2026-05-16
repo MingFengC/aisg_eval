@@ -1,5 +1,5 @@
 {
-  "created_at_utc": "2026-05-14T23:37:47+00:00",
+  "created_at_utc": "2026-05-15T23:20:54+00:00",
   "dataset_source": "huggingface:HuggingFaceTB/cosmopedia_stanford_openstax_wiki_1k",
   "source_language": "en",
   "target_language": "id",
@@ -7,7 +7,7 @@
     "sample_size": 300,
     "min_words": 100,
     "seed": 42,
-    "eligible_rows": 2982,
+    "eligible_rows": 2650,
     "bucket_counts": {
       "long": 100,
       "medium": 100,
@@ -17,7 +17,7 @@
   },
   "generation": {
     "provider": "sealion_api",
-    "model": "aisingapore/Qwen-SEA-LION-v4-32B-IT",
+    "model": "aisingapore/Gemma-SEA-LION-v4-27B-IT",
     "max_retries": 2,
     "max_replacements": 5,
     "chunking": "disabled",
@@ -32,8 +32,8 @@
     "cometkiwi_enabled": true,
     "judge": {
       "enabled": true,
-      "provider": "qwen3vl_local",
-      "model": "Qwen/Qwen3-VL-32B-Instruct",
+      "provider": "sealion_api",
+      "model": "aisingapore/Qwen-SEA-LION-v4-32B-IT",
       "mode": "all"
     }
   },
@@ -41,14 +41,37 @@
     "dataset": "data/translation_eval_ind.jsonl",
     "qa": "data/translation_eval_ind_qa.jsonl",
     "cometkiwi": "data/translation_eval_ind_cometkiwi.jsonl",
-    "judge": "data/translation_eval_ind_judge_qwen3vl.jsonl",
+    "judge": "data/translation_eval_ind_judge_sealion_qwen.jsonl",
     "manifest": "data/translation_eval_ind_manifest.json"
   },
   "stages": {
     "generate": {
-      "started_at_utc": "2026-05-14T23:37:47+00:00",
-      "completed_at_utc": "2026-05-15T00:29:53+00:00",
+      "started_at_utc": "2026-05-15T23:20:54+00:00",
+      "completed_at_utc": "2026-05-16T00:02:14+00:00",
       "records": 300
+    },
+    "finalize": {
+      "completed_at_utc": "2026-05-16T00:46:16+00:00",
+      "cometkiwi_stats": {
+        "merged": 300,
+        "flagged": 30,
+        "errors": 0,
+        "threshold": 0.6744
+      },
+      "judge_stats": {
+        "merged": 300,
+        "flagged": 0,
+        "errors": 1
+      }
     }
+  },
+  "completed_at_utc": "2026-05-16T00:46:16+00:00",
+  "final_counts": {
+    "records": 300,
+    "qa_records": 300,
+    "accepted": 269,
+    "accepted_with_soft_flags": 31,
+    "hard_gate_failures": 0,
+    "soft_qa_flagged": 31
   }
 }

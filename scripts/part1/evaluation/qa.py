@@ -14,10 +14,12 @@ import numpy as np
 from ..config.data_object import PipelineConfig, QAResult
 from ..utils.text import (
     compute_copy_rate,
+    has_llm_artifact_text,
     has_repeated_text,
     heading_numbers,
     indonesian_marker_stats,
     list_marker_count,
+    looks_incomplete_text,
     parse_json_from_model_output,
     word_count,
 )
@@ -45,6 +47,21 @@ ADAPTED_MQM_NABABAN_BAKER_RUBRIC = (
     "particles, and Malay-specific forms are penalized when standard Indonesian has a better equivalent.\n"
     "Also consider paragraph, heading, numbering, list, equation, citation, unit, and code-token preservation "
     "when assigning accuracy, cohesion_coherence, academic_fluency, overall, and critical_error."
+)
+
+
+JUDGE_CALIBRATION_GUIDANCE = (
+    "Judge in error-audit mode, not praise mode. First look for omissions, mistranslations, "
+    "unsupported additions, awkward literal calques, terminology drift, Indonesian morphology errors, "
+    "cohesion breaks, and structure loss. Then assign scores.\n"
+    "Calibration anchors:\n"
+    "- 5 means publishable as a reference translation with no meaningful edits needed. This should be rare.\n"
+    "- 4 means good but at least one minor edit would improve accuracy, terminology, readability, or Indonesian naturalness.\n"
+    "- 3 means usable for gist but not reliable as an evaluation reference without revision.\n"
+    "- 2 means serious adequacy, fluency, terminology, or structure problems.\n"
+    "- 1 means wrong language, largely untranslated, incoherent, or unusable.\n"
+    "Do not give all 5s unless you can honestly find no material or minor issue after comparing the source "
+    "and translation. Avoid generic praise; cite specific evidence in English."
 )
 
 
@@ -107,6 +124,14 @@ class HardQAChecker:
             flags.append("copy_rate_too_high")
         if has_repeated_text(reference):
             flags.append("repeated_text_detected")
+        if looks_incomplete_text(source):
+            flags.append("source_looks_incomplete")
+        if looks_incomplete_text(reference):
+            flags.append("reference_looks_incomplete")
+        if has_llm_artifact_text(source):
+            flags.append("source_llm_artifact")
+        if has_llm_artifact_text(reference):
+            flags.append("reference_llm_artifact")
         if source_headings and not set(source_headings) & set(reference_headings):
             flags.append("heading_numbering_not_preserved")
 
@@ -225,7 +250,37 @@ class TranslationJudge:
         self.audit_rng = random.Random(config.seed + 999)
 
     @staticmethod
-    def build_messages(record: dict[str, Any]) -> list[dict[str, str]]:
+    def qa_context(qa: QAResult | None) -> str:
+        if qa is None:
+            return "No automated QA hints are available."
+
+        hints = [
+            f"deterministic_flags={qa.flags}",
+            f"source_reference_word_ratio={qa.source_reference_word_ratio}",
+            f"copy_rate={qa.copy_rate}",
+        ]
+        if qa.cometkiwi_score is not None:
+            hints.append(
+                "cometkiwi="
+                f"score {qa.cometkiwi_score}, "
+                f"threshold {qa.cometkiwi_threshold}, "
+                f"flagged {qa.cometkiwi_flagged}"
+            )
+        if qa.heading_numbers_expected or qa.heading_numbers_found:
+            hints.append(
+                "heading_numbers="
+                f"expected {qa.heading_numbers_expected}, "
+                f"found {qa.heading_numbers_found}"
+            )
+        return "\n".join(f"- {hint}" for hint in hints)
+
+    @staticmethod
+    def build_messages(
+        record: dict[str, Any],
+        qa: QAResult | None = None,
+    ) -> list[dict[str, str]]:
+        print(TranslationJudge.qa_context(qa))
+        print(record['reference'])
         schema = {
             "accuracy": "integer 1-5",
             "acceptability": "integer 1-5",
@@ -236,7 +291,10 @@ class TranslationJudge:
             "academic_fluency": "integer 1-5",
             "overall": "number 1-5",
             "critical_error": "boolean",
-            "issues": ["short English strings"],
+            "requires_regeneration": "boolean",
+            "major_issues": ["short English strings"],
+            "minor_issues": ["short English strings"],
+            "issues": ["combined short English strings"],
             "rationale": "one short English sentence",
         }
         return [
@@ -244,9 +302,10 @@ class TranslationJudge:
                 "role": "system",
                 "content": (
                     "You are an impartial English-to-Indonesian translation quality judge. "
-                    "Use Indonesian language standards and educational translation expectations, "
-                    "but write all issue strings and the rationale in English. Return valid JSON only. "
-                    "Do not add markdown."
+                    "Your job is to find translation defects that would make a machine-generated "
+                    "Indonesian reference unreliable for model evaluation. Use Indonesian language "
+                    "standards and educational translation expectations, but write all issue strings "
+                    "and the rationale in English. Return valid JSON only. Do not add markdown."
                 ),
             },
             {
@@ -256,11 +315,13 @@ class TranslationJudge:
                     "Do not reward literal translation if it creates unnatural Indonesian, and do not "
                     "penalize accepted Indonesian alternatives or standard retained international terms.\n\n"
                     f"{ADAPTED_MQM_NABABAN_BAKER_RUBRIC}\n\n"
-                    "Use this scale: 5 = excellent/no material issue, 4 = minor issue only, "
-                    "3 = usable but noticeable issue, 2 = serious issue, 1 = unusable or wrong language.\n"
+                    f"{JUDGE_CALIBRATION_GUIDANCE}\n\n"
+                    "Automated QA hints are provided only to focus your inspection. They are not the final verdict:\n"
+                    f"{TranslationJudge.qa_context(qa)}\n\n"
                     "Set critical_error=true for wrong language, major omission, hallucination, meaning reversal, "
                     "severe grammar or terminology failure, incoherent Indonesian, or severe structure loss that "
-                    "makes the translation unsuitable as a reference.\n\n"
+                    "makes the translation unsuitable as a reference. Set requires_regeneration=true if the "
+                    "translation should be regenerated before being used as a reference dataset row.\n\n"
                     f"Return JSON with this schema: {json.dumps(schema, ensure_ascii=False)}\n\n"
                     f"English source:\n<source>\n{record['source']}\n</source>\n\n"
                     f"Indonesian translation:\n<translation>\n{record['reference']}\n</translation>"
@@ -288,12 +349,16 @@ class TranslationJudge:
             return False
         return self.audit_rng.random() < self.config.judge_random_audit_rate
 
-    async def judge_record(self, record: dict[str, Any]) -> dict[str, Any]:
+    async def judge_record(
+        self,
+        record: dict[str, Any],
+        qa: QAResult | None = None,
+    ) -> dict[str, Any]:
         if self.client is None:
             raise RuntimeError("SEA-LION API client unavailable")
         response = await self.client.chat(
             model=self.config.judge_model,
-            messages=self.build_messages(record),
+            messages=self.build_messages(record, qa),
             temperature=0.0,
             max_tokens=1024,
         )
@@ -302,11 +367,14 @@ class TranslationJudge:
         accuracy = _score_value(
             score, "accuracy", default=_score_value(score, "adequacy"))
         critical = _bool_value(score.get("critical_error", False))
+        requires_regeneration = _bool_value(
+            score.get("requires_regeneration", False))
         severe_indonesian_issue = any(
             _score_value(score, key, default=5.0) <= 2.0 for key in RUBRIC_SCORE_KEYS
         )
         flagged = (
             critical
+            or requires_regeneration
             or overall < self.config.judge_min_overall
             or accuracy < self.config.judge_min_accuracy
             or severe_indonesian_issue
@@ -356,7 +424,11 @@ class TranslationJudge:
         async def run_one(record: dict[str, Any]) -> tuple[str, dict[str, Any] | None, Exception | None]:
             async with semaphore:
                 try:
-                    return record["id"], await self.judge_record(record), None
+                    return (
+                        record["id"],
+                        await self.judge_record(record, qa_results.get(record["id"])),
+                        None,
+                    )
                 except Exception as exc:
                     return record["id"], None, exc
 

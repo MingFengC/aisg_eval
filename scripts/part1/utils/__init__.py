@@ -4,6 +4,7 @@ from .io import load_dotenv, load_jsonl_by_id, utc_now, write_jsonl, write_manif
 from .text import (
     clean_model_output,
     compute_copy_rate,
+    has_llm_artifact_text,
     has_repeated_text,
     heading_numbers,
     indonesian_marker_stats,
@@ -18,6 +19,7 @@ from .text import (
 __all__ = [
     "clean_model_output",
     "compute_copy_rate",
+    "has_llm_artifact_text",
     "has_repeated_text",
     "heading_numbers",
     "indonesian_marker_stats",
