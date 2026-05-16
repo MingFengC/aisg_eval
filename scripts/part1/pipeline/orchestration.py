@@ -233,7 +233,10 @@ class GenerationStage:
         _, pool, sampled, data_source = self.source_service.load_sample()
         manifest = ManifestBuilder(self.config).build(
             data_source, pool, sampled)
-        manifest["stages"] = {"generate": {"started_at_utc": utc_now()}}
+        stages: dict[str, dict[str, Any]] = {
+            "generate": {"started_at_utc": utc_now()}
+        }
+        manifest["stages"] = stages
         write_manifest(self.config.manifest_output, manifest)
 
         if self.config.dry_run:

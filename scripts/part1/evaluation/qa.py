@@ -172,7 +172,7 @@ class CometKiwiScorer:
         if self.config.cometkiwi_gpus is not None:
             return max(0, int(self.config.cometkiwi_gpus))
         try:
-            import torch  # type: ignore
+            import torch
         except Exception:
             return 0
         return 1 if torch.cuda.is_available() else 0

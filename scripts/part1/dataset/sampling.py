@@ -32,7 +32,7 @@ class SourceSampler:
         try:
             LOGGER.info("Loading dataset from Hugging Face: %s",
                         self.dataset_name)
-            dataset = load_dataset(self.dataset_name)
+            dataset: Any = load_dataset(self.dataset_name)
             return dataset["train"].to_pandas(), f"huggingface:{self.dataset_name}"
         except Exception as exc:
             raise RuntimeError(

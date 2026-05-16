@@ -1,0 +1,22 @@
+minimum_prek_version: "0.4.0"
+
+repos:
+  - repo: builtin
+    hooks:
+      - id: trailing-whitespace
+        files: ^scripts/.*\.py$
+      - id: end-of-file-fixer
+        files: ^scripts/.*\.py$
+      - id: check-merge-conflict
+        files: ^scripts/.*\.py$
+      - id: detect-private-key
+        files: ^scripts/.*\.py$
+
+  - repo: local
+    hooks:
+      - id: ty-check-scripts
+        name: ty check scripts
+        entry: uv run --group dev ty check scripts
+        language: system
+        pass_filenames: false
+        files: ^scripts/.*\.py$
